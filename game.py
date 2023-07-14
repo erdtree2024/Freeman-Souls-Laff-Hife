@@ -27,7 +27,7 @@ CRATE_SCALING = 0.2
 # Movement speed of player, in pixels per frame
 PLAYER_MOVEMENT_SPEED = 5
 
-GRAVITY = 1
+GRAVITY = .16
 PLAYER_JUMP_SPEED = 7
 
 class MyGame(arcade.Window):
@@ -48,7 +48,6 @@ class MyGame(arcade.Window):
         self.scene = None
 
         self.physics_engine = None
-
 
         # Separate variable that holds the player sprite
         self.player_sprite = None
@@ -124,6 +123,7 @@ class MyGame(arcade.Window):
         self.physics_engine = arcade.PhysicsEnginePlatformer(
             self.player_sprite, gravity_constant=GRAVITY, walls=self.scene["Walls"]
         )
+        self.physics_engine.enable_multi_jump(2)
 
 
 
@@ -139,6 +139,7 @@ class MyGame(arcade.Window):
         if key == arcade.key.UP or key == arcade.key.SPACE:
             if self.physics_engine.can_jump():
                 self.player_sprite.change_y = PLAYER_JUMP_SPEED
+                self.physics_engine.increment_jump_counter()
         elif key == arcade.key.LEFT or key == arcade.key.A:
             self.player_sprite.change_x = -PLAYER_MOVEMENT_SPEED
         elif key == arcade.key.RIGHT or key == arcade.key.D:
