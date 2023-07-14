@@ -1,7 +1,15 @@
 """
 Platformer Game
+
+CONTROLS:
+Spacebar = Jump
+A, D = Left, Right
 """
+
+import timeit
+
 import arcade
+import time
 
 # Constants
 SCREEN_WIDTH = 1280
@@ -16,7 +24,11 @@ CHARACTER_SCALING = .25
 TILE_SCALING = 5
 CRATE_SCALING = 0.2
 
+# Movement speed of player, in pixels per frame
+PLAYER_MOVEMENT_SPEED = 5
 
+GRAVITY = .16
+PLAYER_JUMP_SPEED = 7
 
 class MyGame(arcade.Window):
     """
@@ -33,9 +45,9 @@ class MyGame(arcade.Window):
 
         # go into a list.
 
-        self.wall_list = None
+        self.scene = None
 
-        self.player_list = None
+        self.physics_engine = None
 
 
         # Separate variable that holds the player sprite
@@ -50,11 +62,10 @@ class MyGame(arcade.Window):
 
         # Create the Sprite lists
 
-        self.player_list = arcade.SpriteList()
+        self.scene = arcade.Scene()
 
-        self.wall_list = arcade.SpriteList(use_spatial_hash=True)
-
-
+        self.scene.add_sprite_list("Player")
+        self.scene.add_sprite_list("Walls", use_spatial_hash=True)
 
         # Set up the player, specifically placing it at these coordinates.
 
@@ -66,7 +77,7 @@ class MyGame(arcade.Window):
 
         self.player_sprite.center_y = 128
 
-        self.player_list.append(self.player_sprite)
+        self.scene.add_sprite("Player", self.player_sprite)
 
 
 
@@ -82,7 +93,8 @@ class MyGame(arcade.Window):
 
             wall.center_y = 32
 
-            self.wall_list.append(wall)
+            self.scene.add_sprite("Walls", wall)
+
 
 
 
@@ -106,7 +118,13 @@ class MyGame(arcade.Window):
 
             wall.position = coordinate
 
-            self.wall_list.append(wall)
+            self.scene.add_sprite("Walls", wall)
+
+        # Create the 'physics engine'
+        self.physics_engine = arcade.PhysicsEnginePlatformer(
+            self.player_sprite, gravity_constant=GRAVITY, walls=self.scene["Walls"]
+        )
+
 
 
     def on_draw(self):
@@ -114,15 +132,32 @@ class MyGame(arcade.Window):
 
         # Clear the screen to the background color
         self.clear()
+        self.scene.draw()
+
+    def on_key_press(self, key, modifiers):
+        """Called whenever a key is pressed."""
+        if key == arcade.key.UP or key == arcade.key.SPACE:
+            if self.physics_engine.can_jump():
+                self.player_sprite.change_y = PLAYER_JUMP_SPEED
+        elif key == arcade.key.LEFT or key == arcade.key.A:
+            self.player_sprite.change_x = -PLAYER_MOVEMENT_SPEED
+        elif key == arcade.key.RIGHT or key == arcade.key.D:
+            self.player_sprite.change_x = PLAYER_MOVEMENT_SPEED
 
 
-        # Draw our sprites
+    def on_key_release(self, key, modifiers):
+        """Called when the user releases a key."""
 
-        self.wall_list.draw()
+        if key == arcade.key.LEFT or key == arcade.key.A:
+            self.player_sprite.change_x = 0
+        elif key == arcade.key.RIGHT or key == arcade.key.D:
+            self.player_sprite.change_x = 0
 
-        self.player_list.draw()
+    def on_update(self, delta_time):
+        """Movement and game logic"""
 
-
+        # Move the player with the physics engine
+        self.physics_engine.update()
 
 def main():
     """Main function"""
