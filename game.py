@@ -27,7 +27,7 @@ CRATE_SCALING = 0.2
 # Movement speed of player, in pixels per frame
 PLAYER_MOVEMENT_SPEED = 5
 
-GRAVITY = .16
+GRAVITY = 1
 PLAYER_JUMP_SPEED = 7
 
 class MyGame(arcade.Window):
