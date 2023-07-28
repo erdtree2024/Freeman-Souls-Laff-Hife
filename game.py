@@ -87,15 +87,21 @@ class MyGame(arcade.Window):
 
         # This shows using a loop to place multiple sprites horizontally
 
-        for x in range(0, 1250, 64):
+        for x in range(0, 1600, 64):
 
             wall = arcade.Sprite("resources/middle_edge.png", TILE_SCALING)
+            wall2 = arcade.Sprite("resources/middle_edge.png", TILE_SCALING)
 
             wall.center_x = x
 
             wall.center_y = 32
 
+            wall2.center_x = x+1900
+
+            wall2.center_y = 100
+
             self.scene.add_sprite("Walls", wall)
+            self.scene.add_sprite ("Walls", wall2)
 
 
 
