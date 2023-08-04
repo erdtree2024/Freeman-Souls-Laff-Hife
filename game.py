@@ -15,7 +15,7 @@ import time
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
 SCREEN_TITLE = "bean-former"
-
+COIN_SCALING = 0.15
 
 # Constants used to scale our sprites from their original size
 
@@ -43,7 +43,11 @@ class MyGame(arcade.Window):
         # A Camera that can be used for scrolling the screen
         self.camera = None
         # These are 'lists' that keep track of our sprites. Each sprite should
+        # A Camera that can be used to draw GUI elements
+        self.gui_camera = None
 
+        # Keep track of the score
+        self.score = 0
         # go into a list.
 
         self.scene = None
@@ -52,7 +56,9 @@ class MyGame(arcade.Window):
 
         # Separate variable that holds the player sprite
         self.player_sprite = None
-
+        # Load sounds
+        self.collect_coin_sound = arcade.load_sound("resources/bruh-sound-effect-2.mp3")
+        self.jump_sound = arcade.load_sound("resources/Punch.wav")
         arcade.set_background_color(arcade.csscolor.CORNFLOWER_BLUE)
 
 
@@ -63,7 +69,11 @@ class MyGame(arcade.Window):
         """Set up the game here. Call this function to restart the game."""
 
         # Create the Sprite lists
+        # Set up the GUI Camera
+        self.gui_camera = arcade.Camera(self.width, self.height)
 
+        # Keep track of the score
+        self.score = 0
         self.scene = arcade.Scene()
 
         self.scene.add_sprite_list("Player")
@@ -80,7 +90,12 @@ class MyGame(arcade.Window):
         self.player_sprite.center_y = 128
 
         self.scene.add_sprite("Player", self.player_sprite)
-
+        # Use a loop to place some coins for our character to pick up
+        for x in range(128, 1250, 256):
+            coin = arcade.Sprite("resources/ELIJAHFATHER.png", COIN_SCALING)
+            coin.center_x = x
+            coin.center_y = 96
+            self.scene.add_sprite("Coins", coin)
 
 
         # Create the ground
@@ -138,16 +153,48 @@ class MyGame(arcade.Window):
 
     def on_draw(self):
         """Render the screen."""
-        self.camera.use()
+
         # Clear the screen to the background color
         self.clear()
+
+        # Activate the game camera
+        self.camera.use()
+
+        # Draw our Scene
         self.scene.draw()
 
+
+        # Activate the GUI camera before drawing GUI elements
+
+        self.gui_camera.use()
+
+
+
+        # Draw our score on the screen, scrolling it with the viewport
+
+        score_text = f"Score: {self.score}"
+
+        arcade.draw_text(
+
+            score_text,
+
+            530,
+
+            660,
+
+            arcade.csscolor.WHITE,
+
+            40,
+
+            font_name="Kenney Blocks"
+
+        )
     def on_key_press(self, key, modifiers):
         """Called whenever a key is pressed."""
         if key == arcade.key.UP or key == arcade.key.SPACE:
             if self.physics_engine.can_jump():
                 self.player_sprite.change_y = PLAYER_JUMP_SPEED
+                arcade.play_sound(self.jump_sound)
                 self.physics_engine.increment_jump_counter()
         elif key == arcade.key.LEFT or key == arcade.key.A:
             self.player_sprite.change_x = -PLAYER_MOVEMENT_SPEED
@@ -202,6 +249,18 @@ class MyGame(arcade.Window):
         # Position the camera
 
         self.center_camera_to_player()
+        # See if we hit any coins
+        coin_hit_list = arcade.check_for_collision_with_list(
+            self.player_sprite, self.scene["Coins"]
+        )
+
+        # Loop through each coin we hit (if any) and remove it
+        for coin in coin_hit_list:
+            # Remove the coin
+            coin.remove_from_sprite_lists()
+            # Play a sound
+            arcade.play_sound(self.collect_coin_sound)
+            self.score += 1
 
 def main():
     """Main function"""
