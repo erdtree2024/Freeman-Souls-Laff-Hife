@@ -15,10 +15,22 @@ COIN_SCALING = 0.5
 
 # Movement speed of player, in pixels per frame
 PLAYER_MOVEMENT_SPEED = 10
-GRAVITY = 1
+GRAVITY = .9
 PLAYER_JUMP_SPEED = 20
 
+SPRITE_PIXEL_SIZE = 128
+GRID_PIXEL_SIZE = SPRITE_PIXEL_SIZE * TILE_SCALING
 
+# Player starting position
+PLAYER_START_X = 256
+PLAYER_START_Y = 225
+
+# Layer Names from our TileMap
+LAYER_NAME_PLATFORMS = "Platforms"
+LAYER_NAME_COINS = "Coins"
+LAYER_NAME_FOREGROUND = "Foreground"
+LAYER_NAME_BACKGROUND = "Background"
+LAYER_NAME_DONT_TOUCH = "Don't Touch"
 
 class MyGame(arcade.Window):
     """
@@ -30,6 +42,13 @@ class MyGame(arcade.Window):
         # Call the parent class and set up the window
         super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
 
+        # Where is the right edge of the map?
+        self.end_of_map = 0
+
+        # Level
+        self.level = 1
+
+        # Load sounds
 
         # Our TileMap Object
 
@@ -53,10 +72,14 @@ class MyGame(arcade.Window):
 
         # Keep track of the score
         self.score = 0
+        # Do we need to reset the score?
+        self.reset_score = True
 
         # Load sounds
         self.collect_coin_sound = arcade.load_sound("resources/bruh-sound-effect-2.mp3")
         self.jump_sound = arcade.load_sound("resources/Punch.wav")
+        self.game_over = arcade.load_sound("resources/you-died-sound-effect.mp3")
+        self.background_music = arcade.load_sound("resources/the-final-battle.mp3")
 
         arcade.set_background_color(arcade.csscolor.CORNFLOWER_BLUE)
 
@@ -70,8 +93,21 @@ class MyGame(arcade.Window):
 
         # Name of map file to load
 
-        map_name = "resources/WORLD1.tmx"
+        # Map name
+        map_name = f"resources/WORLD{self.level}.tmx"
 
+        # Layer Specific Options for the Tilemap
+        layer_options = {
+            LAYER_NAME_PLATFORMS: {
+                "use_spatial_hash": True,
+            },
+            LAYER_NAME_COINS: {
+                "use_spatial_hash": True,
+            },
+            LAYER_NAME_DONT_TOUCH: {
+                "use_spatial_hash": True,
+            },
+        }
 
 
         # Layer specific options are defined based on Layer names in a dictionary
@@ -79,16 +115,6 @@ class MyGame(arcade.Window):
         # Doing this will make the SpriteList for the platforms layer
 
         # use spatial hashing for detection.
-
-        layer_options = {
-
-            "Platforms": {
-
-                "use_spatial_hash": True,
-
-            },
-
-        }
 
 
 
@@ -104,15 +130,20 @@ class MyGame(arcade.Window):
 
         self.scene = arcade.Scene.from_tilemap(self.tile_map)
 
+        # Keep track of the score, make sure we keep the score if the player finishes a level
+        if self.reset_score:
+            self.score = 0
+        self.reset_score = True
 
+        arcade.play_sound(self.background_music, volume=.25)
         # Keep track of the score
         self.score = 0
-
+        self.scene.add_sprite_list_after("Player", LAYER_NAME_FOREGROUND)
         # Set up the player, specifically placing it at these coordinates.
         image_source = "resources/GordonFreemanCharacter.png"
         self.player_sprite = arcade.Sprite(image_source, CHARACTER_SCALING)
-        self.player_sprite.center_x = 128
-        self.player_sprite.center_y = 300
+        self.player_sprite.center_x = PLAYER_START_X
+        self.player_sprite.center_y = PLAYER_START_Y
         self.scene.add_sprite("Player", self.player_sprite)
 
 
@@ -134,6 +165,8 @@ class MyGame(arcade.Window):
 
         )
         self.physics_engine.enable_multi_jump(2)
+        # Calculate the right edge of the my_map in pixels
+        self.end_of_map = self.tile_map.width * GRID_PIXEL_SIZE
 
     def on_draw(self):
         """Render the screen."""
@@ -157,10 +190,11 @@ class MyGame(arcade.Window):
         score_text = f"Score: {self.score}"
         arcade.draw_text(
             score_text,
-            10,
+            380,
             10,
             arcade.csscolor.WHITE,
-            18,
+            25,
+            font_name="Kenney Blocks"
         )
 
     def on_key_press(self, key, modifiers):
@@ -222,6 +256,34 @@ class MyGame(arcade.Window):
 
         # Position the camera
         self.center_camera_to_player()
+        # Did the player fall off the map?
+        if self.player_sprite.center_y < -100:
+            self.player_sprite.center_x = PLAYER_START_X
+            self.player_sprite.center_y = PLAYER_START_Y
+
+            arcade.play_sound(self.game_over)
+
+        # Did the player touch something they should not?
+        if arcade.check_for_collision_with_list(
+            self.player_sprite, self.scene[LAYER_NAME_DONT_TOUCH]
+        ):
+            self.player_sprite.change_x = 0
+            self.player_sprite.change_y = 0
+            self.player_sprite.center_x = PLAYER_START_X
+            self.player_sprite.center_y = PLAYER_START_Y
+
+            arcade.play_sound(self.game_over)
+
+        # See if the user got to the end of the level
+        if self.player_sprite.center_x >= self.end_of_map:
+            # Advance to the next level
+            self.level += 1
+
+            # Make sure to keep the score from this level when setting up the next level
+            self.reset_score = False
+
+            # Load the next level
+            self.setup()
 
 
 def main():

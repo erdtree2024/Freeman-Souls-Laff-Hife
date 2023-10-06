@@ -178,7 +178,7 @@ class MyGame(arcade.Window):
         self.physics_engine = arcade.PhysicsEnginePlatformer(
             self.player_sprite, gravity_constant=GRAVITY, walls=self.scene["Walls"]
         )
-        self.physics_engine.enable_multi_jump(2)
+
 
 
 

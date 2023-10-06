@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<tileset version="1.10" tiledversion="1.10.2" name="my_tileset" tilewidth="128" tileheight="128" tilecount="13" columns="0">
+<tileset version="1.10" tiledversion="1.10.2" name="my_tileset" tilewidth="129" tileheight="128" tilecount="15" columns="0">
  <grid orientation="orthogonal" width="1" height="1"/>
  <tile id="0">
   <image width="128" height="128" source="../venv/Lib/site-packages/arcade/resources/images/tiles/boxCrate_double.png"/>
@@ -39,5 +39,11 @@
  </tile>
  <tile id="19">
   <image width="128" height="128" source="../../../../Downloads/stuf/ENDOFTIME.png"/>
+ </tile>
+ <tile id="20">
+  <image width="128" height="128" source="../../../../Downloads/stuf/SKY2.png"/>
+ </tile>
+ <tile id="21">
+  <image width="129" height="128" source="../../../../Downloads/stuf/SKY1.png"/>
  </tile>
 </tileset>
