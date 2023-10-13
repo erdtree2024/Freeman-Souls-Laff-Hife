@@ -31,6 +31,35 @@ LAYER_NAME_COINS = "Coins"
 LAYER_NAME_FOREGROUND = "Foreground"
 LAYER_NAME_BACKGROUND = "Background"
 LAYER_NAME_DONT_TOUCH = "Don't Touch"
+TEXTURE_LEFT = 0
+TEXTURE_RIGHT = 1
+class Player(arcade.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.scale = CHARACTER_SCALING
+        self.textures = []
+        # Load a left facing texture and a right facing texture.
+        # flipped_horizontally=True will mirror the image we load.
+        texture = arcade.load_texture("resources/GordonFreemanCharacter.png")
+        self.textures.append(texture)
+        texture = arcade.load_texture("resources/GordonFreemanCharacter.png",
+                                      flipped_horizontally=True)
+        self.textures.append(texture)
+
+        # By default, face right.
+        self.texture = self.textures[0]
+
+    def update(self):
+
+        self.center_x += self.change_x
+        self.center_y += self.change_y
+
+        # Figure out if we should face left or right
+
+        if self.change_x < 0:
+            self.texture = self.textures[TEXTURE_RIGHT]
+        elif self.change_x > 0:
+            self.texture = self.textures[TEXTURE_LEFT]
 
 class MyGame(arcade.Window):
     """
@@ -141,7 +170,7 @@ class MyGame(arcade.Window):
         self.scene.add_sprite_list_after("Player", LAYER_NAME_FOREGROUND)
         # Set up the player, specifically placing it at these coordinates.
         image_source = "resources/GordonFreemanCharacter.png"
-        self.player_sprite = arcade.Sprite(image_source, CHARACTER_SCALING)
+        self.player_sprite = Player()
         self.player_sprite.center_x = PLAYER_START_X
         self.player_sprite.center_y = PLAYER_START_Y
         self.scene.add_sprite("Player", self.player_sprite)
@@ -199,7 +228,7 @@ class MyGame(arcade.Window):
 
     def on_key_press(self, key, modifiers):
         """Called whenever a key is pressed."""
-        if key == arcade.key.UP or key == arcade.key.SPACE:
+        if key == arcade.key.UP or key == arcade.key.SPACE or key == arcade.key.W:
             if self.physics_engine.can_jump():
                 self.player_sprite.change_y = PLAYER_JUMP_SPEED
                 arcade.play_sound(self.jump_sound)
@@ -236,7 +265,7 @@ class MyGame(arcade.Window):
 
     def on_update(self, delta_time):
         """Movement and game logic"""
-
+        self.player_sprite.update()
         # Move the player with the physics engine
         self.physics_engine.update()
 
@@ -273,7 +302,7 @@ class MyGame(arcade.Window):
             self.player_sprite.center_y = PLAYER_START_Y
 
             arcade.play_sound(self.game_over)
-
+            self.setup()
         # See if the user got to the end of the level
         if self.player_sprite.center_x >= self.end_of_map:
             # Advance to the next level
