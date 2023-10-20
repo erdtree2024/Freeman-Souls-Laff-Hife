@@ -31,6 +31,7 @@ LAYER_NAME_COINS = "Coins"
 LAYER_NAME_FOREGROUND = "Foreground"
 LAYER_NAME_BACKGROUND = "Background"
 LAYER_NAME_DONT_TOUCH = "Don't Touch"
+LAYER_NAME_END = "End"
 TEXTURE_LEFT = 0
 TEXTURE_RIGHT = 1
 class Player(arcade.Sprite):
@@ -58,6 +59,7 @@ class Player(arcade.Sprite):
 
         if self.change_x < 0:
             self.texture = self.textures[TEXTURE_RIGHT]
+            #stuff
         elif self.change_x > 0:
             self.texture = self.textures[TEXTURE_LEFT]
 
@@ -136,6 +138,9 @@ class MyGame(arcade.Window):
             LAYER_NAME_DONT_TOUCH: {
                 "use_spatial_hash": True,
             },
+            LAYER_NAME_END: {
+                "use_spatial_hash": True,
+            },
         }
 
 
@@ -166,7 +171,6 @@ class MyGame(arcade.Window):
 
         arcade.play_sound(self.background_music, volume=.25)
         # Keep track of the score
-        self.score = 0
         self.scene.add_sprite_list_after("Player", LAYER_NAME_FOREGROUND)
         # Set up the player, specifically placing it at these coordinates.
         image_source = "resources/GordonFreemanCharacter.png"
@@ -308,12 +312,19 @@ class MyGame(arcade.Window):
             # Advance to the next level
             self.level += 1
 
+
             # Make sure to keep the score from this level when setting up the next level
             self.reset_score = False
 
             # Load the next level
             self.setup()
 
+        if arcade.check_for_collision_with_list(
+                self.player_sprite, self.scene[LAYER_NAME_END]
+        ):
+            self.level += 1
+            self.reset_score = False
+            self.setup()
 
 def main():
     """Main function"""
