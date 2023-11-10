@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<tileset version="1.10" tiledversion="1.10.2" name="my_tileset" tilewidth="12800" tileheight="2560" tilecount="34" columns="0">
+<tileset version="1.10" tiledversion="1.10.2" name="my_tileset" tilewidth="12800" tileheight="2560" tilecount="39" columns="0">
  <grid orientation="orthogonal" width="1" height="1"/>
  <tile id="0">
   <image width="128" height="128" source="../venv/Lib/site-packages/arcade/resources/images/tiles/boxCrate_double.png"/>
@@ -102,5 +102,20 @@
  </tile>
  <tile id="40">
   <image width="128" height="128" source="HOTSAUCE.png"/>
+ </tile>
+ <tile id="41">
+  <image width="128" height="128" source="../../../../Downloads/stuf/AUGUSTINE.png"/>
+ </tile>
+ <tile id="42">
+  <image width="128" height="128" source="../../../../Downloads/stuf/GENGHIS.png"/>
+ </tile>
+ <tile id="43">
+  <image width="128" height="128" source="../../../../Downloads/stuf/OXYGEN.png"/>
+ </tile>
+ <tile id="44">
+  <image width="128" height="128" source="../../../../Downloads/stuf/BORON.png"/>
+ </tile>
+ <tile id="45">
+  <image width="128" height="128" source="../../../../Downloads/stuf/LADDER.png"/>
  </tile>
 </tileset>

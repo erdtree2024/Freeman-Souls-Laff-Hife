@@ -16,7 +16,7 @@ COIN_SCALING = 0.5
 # Movement speed of player, in pixels per frame
 PLAYER_MOVEMENT_SPEED = 10
 GRAVITY = .9
-PLAYER_JUMP_SPEED = 20
+PLAYER_JUMP_SPEED = 15
 
 SPRITE_PIXEL_SIZE = 128
 GRID_PIXEL_SIZE = SPRITE_PIXEL_SIZE * TILE_SCALING
@@ -31,6 +31,8 @@ LAYER_NAME_COINS = "Coins"
 LAYER_NAME_FOREGROUND = "Foreground"
 LAYER_NAME_BACKGROUND = "Background"
 LAYER_NAME_DONT_TOUCH = "Don't Touch"
+LAYER_NAME_MOVING_PLATFORMS = "Moving Platforms"
+LAYER_NAME_LADDERS = "Ladders"
 LAYER_NAME_END = "End"
 TEXTURE_LEFT = 0
 TEXTURE_RIGHT = 1
@@ -141,6 +143,12 @@ class MyGame(arcade.Window):
             LAYER_NAME_END: {
                 "use_spatial_hash": True,
             },
+            LAYER_NAME_LADDERS: {
+                "use_spatial_hash": True,
+            },
+            LAYER_NAME_MOVING_PLATFORMS: {
+                "use_spatial_hash": False,
+            },
         }
 
 
@@ -194,7 +202,9 @@ class MyGame(arcade.Window):
 
         self.physics_engine = arcade.PhysicsEnginePlatformer(
 
-            self.player_sprite, gravity_constant=GRAVITY, walls=self.scene["Platforms"]
+            self.player_sprite, gravity_constant=GRAVITY, walls=self.scene["Platforms"],
+            platforms=self.scene[LAYER_NAME_MOVING_PLATFORMS],
+            ladders=self.scene[LAYER_NAME_LADDERS]
 
         )
         self.physics_engine.enable_multi_jump(2)
@@ -233,7 +243,9 @@ class MyGame(arcade.Window):
     def on_key_press(self, key, modifiers):
         """Called whenever a key is pressed."""
         if key == arcade.key.UP or key == arcade.key.SPACE or key == arcade.key.W:
-            if self.physics_engine.can_jump():
+            if self.physics_engine.is_on_ladder():
+                self.player_sprite.change_y = PLAYER_MOVEMENT_SPEED
+            elif self.physics_engine.can_jump():
                 self.player_sprite.change_y = PLAYER_JUMP_SPEED
                 arcade.play_sound(self.jump_sound)
                 self.physics_engine.increment_jump_counter()
@@ -242,17 +254,27 @@ class MyGame(arcade.Window):
         elif key == arcade.key.RIGHT or key == arcade.key.D:
             self.player_sprite.change_x = PLAYER_MOVEMENT_SPEED
         elif key == arcade.key.DOWN or key == arcade.key.S:
-            self.player_sprite.height *= 0.5
+            if self.physics_engine.is_on_ladder():
+                self.player_sprite.change_y = -PLAYER_MOVEMENT_SPEED
+            else:
+                self.player_sprite.height *= 0.5
 
     def on_key_release(self, key, modifiers):
         """Called when the user releases a key."""
-
-        if key == arcade.key.LEFT or key == arcade.key.A:
+        if key == arcade.key.UP or key == arcade.key.W:
+            if self.physics_engine.is_on_ladder():
+                self.player_sprite.change_y = 0
+        elif key == arcade.key.DOWN or key == arcade.key.S:
+            if self.physics_engine.is_on_ladder():
+                self.player_sprite.change_y = 0
+            else:
+                self.player_sprite.height *= 2
+        elif key == arcade.key.LEFT or key == arcade.key.A:
             self.player_sprite.change_x = 0
         elif key == arcade.key.RIGHT or key == arcade.key.D:
             self.player_sprite.change_x = 0
-        elif key == arcade.key.DOWN or key == arcade.key.S:
-            self.player_sprite.height *= 2
+
+
 
     def center_camera_to_player(self):
         screen_center_x = self.player_sprite.center_x - (self.camera.viewport_width / 2)
@@ -272,6 +294,9 @@ class MyGame(arcade.Window):
         self.player_sprite.update()
         # Move the player with the physics engine
         self.physics_engine.update()
+
+        # Update walls, used with moving platforms
+        self.scene.update([LAYER_NAME_MOVING_PLATFORMS])
 
         # See if we hit any coins
         coin_hit_list = arcade.check_for_collision_with_list(
