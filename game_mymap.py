@@ -36,35 +36,80 @@ LAYER_NAME_LADDERS = "Ladders"
 LAYER_NAME_END = "End"
 TEXTURE_LEFT = 0
 TEXTURE_RIGHT = 1
+
+def load_texture_pair(filename):
+    """
+    Load a texture pair, with the second being a mirror image.
+    """
+    return [
+        arcade.load_texture(filename),
+        arcade.load_texture(filename, flipped_horizontally=True),
+    ]
+
 class Player(arcade.Sprite):
     def __init__(self):
         super().__init__()
+        main_path = "resources/player/"
         self.scale = CHARACTER_SCALING
-        self.textures = []
+        self.idle_texture = load_texture_pair(f"{main_path}idle1.png")
+        self.jump_texture = load_texture_pair(f"{main_path}jump1.png")
+        self.fall_texture = load_texture_pair(f"{main_path}fall.png")
+        self.ladder_texture = load_texture_pair(f"{main_path}ladder0.png")
+        self.climb_texture = load_texture_pair((f"{main_path}ladder1.png"))
         # Load a left facing texture and a right facing texture.
         # flipped_horizontally=True will mirror the image we load.
-        texture = arcade.load_texture("resources/GordonFreemanCharacter.png")
-        self.textures.append(texture)
-        texture = arcade.load_texture("resources/GordonFreemanCharacter.png",
-                                      flipped_horizontally=True)
-        self.textures.append(texture)
-
+        self.cur_texture = 0
+        self.character_face_direction = TEXTURE_RIGHT
         # By default, face right.
-        self.texture = self.textures[0]
+        self.texture = self.idle_texture[0]
+        self.is_on_ladder = False
+        self.climbing = False
 
-    def update(self):
+        # Load textures for walking
+        self.walk_textures = []
+        for i in range(3):
+            texture = load_texture_pair(f"{main_path}walk{i}.png")
+            self.walk_textures.append(texture)
 
-        self.center_x += self.change_x
-        self.center_y += self.change_y
+    def update_animation(self, delta_time: float = 1 / 60):
 
-        # Figure out if we should face left or right
+        # Figure out if we need to flip face left or right
+        if self.change_x < 0 and self.character_face_direction == TEXTURE_RIGHT:
+            self.character_face_direction = TEXTURE_LEFT
+        elif self.change_x > 0 and self.character_face_direction == TEXTURE_LEFT:
+            self.character_face_direction = TEXTURE_RIGHT
 
-        if self.change_x < 0:
-            self.texture = self.textures[TEXTURE_RIGHT]
-            #stuff
-        elif self.change_x > 0:
-            self.texture = self.textures[TEXTURE_LEFT]
+        if self.is_on_ladder and abs(self.change_y) > 1:
+            self.texture = self.climb_texture[self.character_face_direction]
+            return
 
+        if self.is_on_ladder:
+            self.texture = self.ladder_texture[self.character_face_direction]
+            return
+
+
+        # Jump animation
+        if self.change_y > 0 and not self.is_on_ladder:
+            self.texture = self.jump_texture[self.character_face_direction]
+            return
+        elif self.change_y < 0 and not self.is_on_ladder:
+            self.texture = self.fall_texture[self.character_face_direction]
+            return
+
+        # Idle animation
+        if self.change_x == 0:
+            self.texture = self.idle_texture[self.character_face_direction]
+            return
+
+
+
+        # Walking animation
+        self.cur_texture += 1
+        if self.cur_texture > 2:
+            self.cur_texture = 0
+        self.texture = self.walk_textures[self.cur_texture][
+            self.character_face_direction
+        ]
 class MyGame(arcade.Window):
     """
     Main application class.
@@ -181,7 +226,7 @@ class MyGame(arcade.Window):
         # Keep track of the score
         self.scene.add_sprite_list_after("Player", LAYER_NAME_FOREGROUND)
         # Set up the player, specifically placing it at these coordinates.
-        image_source = "resources/GordonFreemanCharacter.png"
+
         self.player_sprite = Player()
         self.player_sprite.center_x = PLAYER_START_X
         self.player_sprite.center_y = PLAYER_START_Y
@@ -295,8 +340,19 @@ class MyGame(arcade.Window):
         # Move the player with the physics engine
         self.physics_engine.update()
 
+        if self.physics_engine.is_on_ladder():
+            self.player_sprite.is_on_ladder = True
+        else:
+            self.player_sprite.is_on_ladder = False
+
+
         # Update walls, used with moving platforms
         self.scene.update([LAYER_NAME_MOVING_PLATFORMS])
+
+        # Update Animations
+        self.scene.update_animation(
+            delta_time, [LAYER_NAME_COINS, LAYER_NAME_BACKGROUND, "Player"]
+        )
 
         # See if we hit any coins
         coin_hit_list = arcade.check_for_collision_with_list(
