@@ -2,6 +2,8 @@
 Platformer Game
 """
 import arcade
+import math
+import os
 
 # Constants
 SCREEN_WIDTH = 1000
@@ -34,6 +36,7 @@ LAYER_NAME_DONT_TOUCH = "Don't Touch"
 LAYER_NAME_MOVING_PLATFORMS = "Moving Platforms"
 LAYER_NAME_LADDERS = "Ladders"
 LAYER_NAME_END = "End"
+LAYER_NAME_ENEMIES = "Enemies"
 TEXTURE_LEFT = 0
 TEXTURE_RIGHT = 1
 
@@ -45,6 +48,65 @@ def load_texture_pair(filename):
         arcade.load_texture(filename),
         arcade.load_texture(filename, flipped_horizontally=True),
     ]
+class Entity(arcade.Sprite):
+    def __init__(self, name_folder, name_file, type):
+        super().__init__()
+
+        # Default to facing right
+        self.facing_direction = TEXTURE_RIGHT
+        self.properties["type"] = type
+        # Used for image sequences
+        self.cur_texture = 0
+        self.scale = CHARACTER_SCALING
+        self.character_face_direction = TEXTURE_RIGHT
+
+        main_path = f":resources:images/animated_characters/{name_folder}/{name_file}"
+
+        self.idle_texture_pair = load_texture_pair(f"{main_path}_idle.png")
+        self.jump_texture_pair = load_texture_pair(f"{main_path}_jump.png")
+        self.fall_texture_pair = load_texture_pair(f"{main_path}_fall.png")
+
+        # Load textures for walking
+        self.walk_textures = []
+        for i in range(8):
+            texture = load_texture_pair(f"{main_path}_walk{i}.png")
+            self.walk_textures.append(texture)
+
+        # Load textures for climbing
+        self.climbing_textures = []
+        texture = arcade.load_texture(f"{main_path}_climb0.png")
+        self.climbing_textures.append(texture)
+        texture = arcade.load_texture(f"{main_path}_climb1.png")
+        self.climbing_textures.append(texture)
+
+        # Set the initial texture
+        self.texture = self.idle_texture_pair[0]
+
+        # Hit box will be set based on the first image used. If you want to specify
+        # a different hit box, you can do it like the code below.
+        # set_hit_box = [[-22, -64], [22, -64], [22, 28], [-22, 28]]
+        self.hit_box = self.texture.hit_box_points
+
+
+class Enemy(Entity):
+    def __init__(self, name_folder, name_file, type):
+
+        # Setup parent class
+        super().__init__(name_folder, name_file, type)
+
+
+class RobotEnemy(Enemy):
+    def __init__(self):
+
+        # Set up parent class
+        super().__init__("robot", "robot", "robot")
+
+
+class ZombieEnemy(Enemy):
+    def __init__(self):
+
+        # Set up parent class
+        super().__init__("zombie", "zombie", "zombie")
 
 class Player(arcade.Sprite):
     def __init__(self):
@@ -194,6 +256,9 @@ class MyGame(arcade.Window):
             LAYER_NAME_MOVING_PLATFORMS: {
                 "use_spatial_hash": False,
             },
+            LAYER_NAME_ENEMIES: {
+                "use_spatial_hash": True
+            }
         }
 
 
@@ -255,6 +320,27 @@ class MyGame(arcade.Window):
         self.physics_engine.enable_multi_jump(2)
         # Calculate the right edge of the my_map in pixels
         self.end_of_map = self.tile_map.width * GRID_PIXEL_SIZE
+        # -- Enemies
+        enemies_layer = self.scene[LAYER_NAME_ENEMIES]
+
+        for my_object in enemies_layer:
+            cartesian = self.tile_map.get_cartesian(
+                my_object.center_x, my_object.center_y
+            )
+            enemy_type = my_object.properties["type"]
+            if enemy_type == "robot":
+                enemy = RobotEnemy()
+            elif enemy_type == "zombie":
+                enemy = ZombieEnemy()
+            else:
+                raise Exception(f"Unknown enemy type {enemy_type}.")
+            enemy.center_x = math.floor(
+                cartesian[0] * TILE_SCALING * self.tile_map.tile_width
+            )
+            enemy.center_y = math.floor(
+                (cartesian[1] + 1) * (self.tile_map.tile_height * TILE_SCALING)
+            )
+            self.scene.add_sprite(LAYER_NAME_ENEMIES, enemy)
 
     def on_draw(self):
         """Render the screen."""
