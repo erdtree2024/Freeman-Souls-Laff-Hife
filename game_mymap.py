@@ -197,7 +197,7 @@ class MyGame(arcade.Window):
 
         # Our Scene Object
         self.scene = None
-
+        self.end_of_map = 0
         # Separate variable that holds the player sprite
         self.player_sprite = None
 
@@ -233,7 +233,7 @@ class MyGame(arcade.Window):
 
         # Name of map file to load
 
-        # Map name
+        # # Map name
         map_name = f"resources/WORLD{self.level}.tmx"
 
         # Layer Specific Options for the Tilemap
@@ -256,9 +256,9 @@ class MyGame(arcade.Window):
             LAYER_NAME_MOVING_PLATFORMS: {
                 "use_spatial_hash": False,
             },
-            LAYER_NAME_ENEMIES: {
-                "use_spatial_hash": True
-            }
+            # LAYER_NAME_ENEMIES: {
+            #     "use_spatial_hash": True
+            # }
         }
 
 
@@ -289,13 +289,40 @@ class MyGame(arcade.Window):
 
         arcade.play_sound(self.background_music, volume=.25)
         # Keep track of the score
-        self.scene.add_sprite_list_after("Player", LAYER_NAME_FOREGROUND)
+        # self.scene.add_sprite_list_after("Player", LAYER_NAME_FOREGROUND)
         # Set up the player, specifically placing it at these coordinates.
 
         self.player_sprite = Player()
         self.player_sprite.center_x = PLAYER_START_X
         self.player_sprite.center_y = PLAYER_START_Y
         self.scene.add_sprite("Player", self.player_sprite)
+
+        # # Calculate the right edge of the my_map in pixels
+        self.end_of_map = self.tile_map.width * GRID_PIXEL_SIZE
+        # -- Enemies
+        enemies_layer = self.tile_map.object_lists[LAYER_NAME_ENEMIES]
+
+        for my_object in enemies_layer:
+            # cartesian = self.tile_map.get_cartesian(
+            #     my_object.center_x, my_object.center_y
+            # )
+            cartesian = self.tile_map.get_cartesian(
+                my_object.shape[0], my_object.shape[1]
+            )
+            enemy_type = my_object.properties["type"]
+            if enemy_type == "robot":
+                enemy = RobotEnemy()
+            elif enemy_type == "zombie":
+                enemy = ZombieEnemy()
+            else:
+                raise Exception(f"Unknown enemy type {enemy_type}.")
+            enemy.center_x = math.floor(
+                cartesian[0] * TILE_SCALING * self.tile_map.tile_width
+            )
+            enemy.center_y = math.floor(
+                (cartesian[1] + 1) * (self.tile_map.tile_height * TILE_SCALING)
+            )
+            self.scene.add_sprite(LAYER_NAME_ENEMIES, enemy)
 
 
         # --- Other stuff
@@ -318,29 +345,6 @@ class MyGame(arcade.Window):
 
         )
         self.physics_engine.enable_multi_jump(2)
-        # Calculate the right edge of the my_map in pixels
-        self.end_of_map = self.tile_map.width * GRID_PIXEL_SIZE
-        # -- Enemies
-        enemies_layer = self.scene[LAYER_NAME_ENEMIES]
-
-        for my_object in enemies_layer:
-            cartesian = self.tile_map.get_cartesian(
-                my_object.center_x, my_object.center_y
-            )
-            enemy_type = my_object.properties["type"]
-            if enemy_type == "robot":
-                enemy = RobotEnemy()
-            elif enemy_type == "zombie":
-                enemy = ZombieEnemy()
-            else:
-                raise Exception(f"Unknown enemy type {enemy_type}.")
-            enemy.center_x = math.floor(
-                cartesian[0] * TILE_SCALING * self.tile_map.tile_width
-            )
-            enemy.center_y = math.floor(
-                (cartesian[1] + 1) * (self.tile_map.tile_height * TILE_SCALING)
-            )
-            self.scene.add_sprite(LAYER_NAME_ENEMIES, enemy)
 
     def on_draw(self):
         """Render the screen."""
