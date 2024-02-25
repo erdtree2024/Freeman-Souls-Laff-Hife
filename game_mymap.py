@@ -59,9 +59,10 @@ class Entity(arcade.Sprite):
         self.cur_texture = 0
         self.scale = CHARACTER_SCALING
         self.character_face_direction = TEXTURE_RIGHT
-
-        main_path = f":resources:images/animated_characters/{name_folder}/{name_file}"
-
+        if type == "zombie" or type == "robot":
+            main_path = f":resources:images/animated_characters/{name_folder}/{name_file}"
+        else:
+            main_path = f"resources/enemies/{name_file}"
         self.idle_texture_pair = load_texture_pair(f"{main_path}_idle.png")
         self.jump_texture_pair = load_texture_pair(f"{main_path}_jump.png")
         self.fall_texture_pair = load_texture_pair(f"{main_path}_fall.png")
@@ -93,20 +94,50 @@ class Enemy(Entity):
 
         # Setup parent class
         super().__init__(name_folder, name_file, type)
+        self.should_update_walk = 0
 
+    def update_animation(self, delta_time: float = 1 / 60):
+
+         # Figure out if we need to flip face left or right
+        if self.change_x < 0 and self.facing_direction == TEXTURE_RIGHT:
+            self.facing_direction = TEXTURE_LEFT
+        elif self.change_x > 0 and self.facing_direction == TEXTURE_LEFT:
+            self.facing_direction = TEXTURE_RIGHT
+
+            # Idle animation
+        if self.change_x == 0:
+            self.texture = self.idle_texture_pair[self.facing_direction]
+            return
+
+            # Walking animation
+        if self.should_update_walk == 3:
+            self.cur_texture += 1
+            if self.cur_texture > 7:
+                self.cur_texture = 0
+            self.texture = self.walk_textures[self.cur_texture][self.facing_direction]
+            self.should_update_walk = 0
+            return
+
+        self.should_update_walk += 1
 
 class RobotEnemy(Enemy):
     def __init__(self):
 
         # Set up parent class
         super().__init__("robot", "robot", "robot")
+        self.scale = 1
 
-
-class ZombieEnemy(Enemy):
+class HeadcrabEnemy(Enemy):
     def __init__(self):
 
         # Set up parent class
+        super().__init__("headcrab", "headcrab", "headcrab")
+        self.scale = .25
+class ZombieEnemy(Enemy):
+    def __init__(self):
+        # Set up parent class
         super().__init__("zombie", "zombie", "zombie")
+        self.scale = 1
 
 class Player(arcade.Sprite):
     def __init__(self):
@@ -314,6 +345,8 @@ class MyGame(arcade.Window):
                 enemy = RobotEnemy()
             elif enemy_type == "zombie":
                 enemy = ZombieEnemy()
+            elif enemy_type == "headcrab":
+                enemy = HeadcrabEnemy()
             else:
                 raise Exception(f"Unknown enemy type {enemy_type}.")
             enemy.center_x = math.floor(
@@ -322,6 +355,13 @@ class MyGame(arcade.Window):
             enemy.center_y = math.floor(
                 (cartesian[1] + 1) * (self.tile_map.tile_height * TILE_SCALING)
             )
+            if "boundary_left" in my_object.properties:
+                enemy.boundary_left = my_object.properties["boundary_left"]
+            if "boundary_right" in my_object.properties:
+                enemy.boundary_right = my_object.properties["boundary_right"]
+            if "change_x" in my_object.properties:
+                enemy.change_x = my_object.properties["change_x"]
+
             self.scene.add_sprite(LAYER_NAME_ENEMIES, enemy)
 
 
@@ -375,6 +415,40 @@ class MyGame(arcade.Window):
             font_name="Kenney Blocks"
         )
 
+    def process_keychange(self):
+        """
+        Called when we change a key up/down or we move on/off a ladder.
+        """
+        # Process up/down
+        if self.up_pressed and not self.down_pressed:
+            if self.physics_engine.is_on_ladder():
+                self.player_sprite.change_y = PLAYER_MOVEMENT_SPEED
+            elif (
+                    self.physics_engine.can_jump(y_distance=10)
+                    and not self.jump_needs_reset
+            ):
+                self.player_sprite.change_y = PLAYER_JUMP_SPEED
+                self.jump_needs_reset = True
+                arcade.play_sound(self.jump_sound)
+        elif self.down_pressed and not self.up_pressed:
+            if self.physics_engine.is_on_ladder():
+                self.player_sprite.change_y = -PLAYER_MOVEMENT_SPEED
+
+        # Process up/down when on a ladder and no movement
+        if self.physics_engine.is_on_ladder():
+            if not self.up_pressed and not self.down_pressed:
+                self.player_sprite.change_y = 0
+            elif self.up_pressed and self.down_pressed:
+                self.player_sprite.change_y = 0
+
+        # Process left/right
+        if self.right_pressed and not self.left_pressed:
+            self.player_sprite.change_x = PLAYER_MOVEMENT_SPEED
+        elif self.left_pressed and not self.right_pressed:
+            self.player_sprite.change_x = -PLAYER_MOVEMENT_SPEED
+        else:
+            self.player_sprite.change_x = 0
+
     def on_key_press(self, key, modifiers):
         """Called whenever a key is pressed."""
         if key == arcade.key.UP or key == arcade.key.SPACE or key == arcade.key.W:
@@ -393,6 +467,7 @@ class MyGame(arcade.Window):
                 self.player_sprite.change_y = -PLAYER_MOVEMENT_SPEED
             else:
                 self.player_sprite.height *= 0.5
+        # self.process_keychange()
 
     def on_key_release(self, key, modifiers):
         """Called when the user releases a key."""
@@ -408,7 +483,7 @@ class MyGame(arcade.Window):
             self.player_sprite.change_x = 0
         elif key == arcade.key.RIGHT or key == arcade.key.D:
             self.player_sprite.change_x = 0
-
+        # self.process_keychange()
 
 
     def center_camera_to_player(self):
@@ -432,17 +507,33 @@ class MyGame(arcade.Window):
 
         if self.physics_engine.is_on_ladder():
             self.player_sprite.is_on_ladder = True
+            # self.process_keychange()
         else:
             self.player_sprite.is_on_ladder = False
+            # self.process_keychange()
 
 
         # Update walls, used with moving platforms
-        self.scene.update([LAYER_NAME_MOVING_PLATFORMS])
+        self.scene.update([LAYER_NAME_MOVING_PLATFORMS, LAYER_NAME_ENEMIES])
 
         # Update Animations
         self.scene.update_animation(
-            delta_time, [LAYER_NAME_COINS, LAYER_NAME_BACKGROUND, "Player"]
+            delta_time, [LAYER_NAME_COINS, LAYER_NAME_BACKGROUND, LAYER_NAME_ENEMIES, "Player"]
         )
+        for enemy in self.scene[LAYER_NAME_ENEMIES]:
+            if (
+                enemy.boundary_right
+                and enemy.right > enemy.boundary_right
+                and enemy.change_x > 0
+            ):
+                enemy.change_x *= -1
+
+            if (
+                enemy.boundary_left
+                and enemy.left < enemy.boundary_left
+                and enemy.change_x < 0
+            ):
+                enemy.change_x *= -1
 
         # See if we hit any coins
         coin_hit_list = arcade.check_for_collision_with_list(
