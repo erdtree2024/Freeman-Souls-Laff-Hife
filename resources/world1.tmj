@@ -82,6 +82,12 @@
          "id":2,
          "name":"Coins",
          "opacity":1,
+         "properties":[
+                {
+                 "name":"Points",
+                 "type":"int",
+                 "value":1
+                }],
          "type":"tilelayer",
          "visible":true,
          "width":50,

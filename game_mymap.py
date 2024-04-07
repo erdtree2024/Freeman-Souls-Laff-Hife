@@ -415,6 +415,9 @@ class MyGame(arcade.Window):
             font_name="Kenney Blocks"
         )
 
+    # Draw hit boxes.
+
+        self.player_sprite.draw_hit_box(arcade.color.RED, 3)
     def process_keychange(self):
         """
         Called when we change a key up/down or we move on/off a ladder.
@@ -520,6 +523,7 @@ class MyGame(arcade.Window):
         self.scene.update_animation(
             delta_time, [LAYER_NAME_COINS, LAYER_NAME_BACKGROUND, LAYER_NAME_ENEMIES, "Player"]
         )
+
         for enemy in self.scene[LAYER_NAME_ENEMIES]:
             if (
                 enemy.boundary_right
@@ -535,19 +539,34 @@ class MyGame(arcade.Window):
             ):
                 enemy.change_x *= -1
 
-        # See if we hit any coins
-        coin_hit_list = arcade.check_for_collision_with_list(
-            self.player_sprite, self.scene["Coins"]
+        # See if we hit anything
+        player_collision_list = arcade.check_for_collision_with_lists(
+            self.player_sprite,
+            [
+                self.scene[LAYER_NAME_COINS],
+                self.scene[LAYER_NAME_ENEMIES],
+            ],
         )
-
         # Loop through each coin we hit (if any) and remove it
-        for coin in coin_hit_list:
-            # Remove the coin
-            coin.remove_from_sprite_lists()
-            # Play a sound
-            arcade.play_sound(self.collect_coin_sound)
-            # Add one to the score
-            self.score += 1
+        for collision in player_collision_list:
+
+            if self.scene[LAYER_NAME_ENEMIES] in collision.sprite_lists:
+                arcade.play_sound(self.game_over)
+                self.setup()
+                return
+            else:
+
+                self.score += 1
+                # Figure out how many points this coin is worth
+                # if "Points" not in collision.properties:
+                #     print("Warning, collected a coin without a Points property.")
+                # else:
+                #     points = int(collision.properties["Points"])
+                #     self.score += points
+
+                # Remove the coin
+                collision.remove_from_sprite_lists()
+                arcade.play_sound(self.collect_coin_sound)
 
         # Position the camera
         self.center_camera_to_player()
