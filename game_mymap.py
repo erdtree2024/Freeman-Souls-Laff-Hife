@@ -8,7 +8,7 @@ import os
 # Constants
 SCREEN_WIDTH = 1000
 SCREEN_HEIGHT = 650
-SCREEN_TITLE = "Platformer"
+SCREEN_TITLE = "Laff-Hife: The Souls-Freeman Experience"
 
 # Constants used to scale our sprites from their original size
 CHARACTER_SCALING = .25
