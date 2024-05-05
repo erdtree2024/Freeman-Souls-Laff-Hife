@@ -8,7 +8,7 @@ import os
 # Constants
 SCREEN_WIDTH = 1000
 SCREEN_HEIGHT = 650
-SCREEN_TITLE = "Laff-Hife: The Souls-Freeman Experience"
+SCREEN_TITLE = "Freeman Souls: Laff Hife"
 
 # Constants used to scale our sprites from their original size
 CHARACTER_SCALING = .25
@@ -24,7 +24,7 @@ SPRITE_PIXEL_SIZE = 128
 GRID_PIXEL_SIZE = SPRITE_PIXEL_SIZE * TILE_SCALING
 
 # Player starting position
-PLAYER_START_X = 256
+PLAYER_START_X = 300
 PLAYER_START_Y = 225
 
 # Layer Names from our TileMap
@@ -203,7 +203,45 @@ class Player(arcade.Sprite):
         self.texture = self.walk_textures[self.cur_texture][
             self.character_face_direction
         ]
-class MyGame(arcade.Window):
+
+class MainMenu(arcade.View):
+    """Class that manages the 'menu' view."""
+
+    def __init__(self):
+        """ This is run once when we switch to this view """
+        super().__init__()
+    def on_show_view(self):
+        """Called when switching to this view."""
+        arcade.set_background_color(arcade.color.BLACK)
+
+    def on_draw(self):
+        """Draw the menu"""
+        self.clear()
+        arcade.draw_text(
+            "FREEMAN SOULS: LAFF HIFE",
+            SCREEN_WIDTH / 2,
+            SCREEN_HEIGHT - 100,
+            arcade.color.BLUEBERRY,
+            font_size=40,
+            anchor_x="center",
+            font_name="Soul_Font"
+        )
+        arcade.draw_text(
+            "CLICK ANY BUTTON",
+            SCREEN_WIDTH / 2,
+            SCREEN_HEIGHT / 2,
+            arcade.color.WHITE,
+            font_size=30,
+            anchor_x="center",
+            font_name="Soul_Font"
+        )
+
+    def on_mouse_press(self, _x, _y, _button, _modifiers):
+        """Use a mouse press to advance to the 'game' view."""
+        game_view = GameView()
+        self.window.show_view(game_view)
+
+class GameView(arcade.View):
     """
     Main application class.
     """
@@ -211,8 +249,8 @@ class MyGame(arcade.Window):
     def __init__(self):
 
         # Call the parent class and set up the window
-        super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
-
+        # super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
+        super().__init__()
         # Where is the right edge of the map?
         self.end_of_map = 0
 
@@ -258,8 +296,8 @@ class MyGame(arcade.Window):
         """Set up the game here. Call this function to restart the game."""
 
         # Set up the Cameras
-        self.camera = arcade.Camera(self.width, self.height)
-        self.gui_camera = arcade.Camera(self.width, self.height)
+        self.camera = arcade.Camera(self.window.width, self.window.height)
+        self.gui_camera = arcade.Camera(self.window.width, self.window.height)
 
 
         # Name of map file to load
@@ -386,6 +424,8 @@ class MyGame(arcade.Window):
         )
         self.physics_engine.enable_multi_jump(2)
 
+    def on_show_view(self):
+        self.setup()
     def on_draw(self):
         """Render the screen."""
 
@@ -552,7 +592,8 @@ class MyGame(arcade.Window):
 
             if self.scene[LAYER_NAME_ENEMIES] in collision.sprite_lists:
                 arcade.play_sound(self.game_over)
-                self.setup()
+                game_over = GameOverView()
+                self.window.show_view(game_over)
                 return
             else:
 
@@ -606,11 +647,35 @@ class MyGame(arcade.Window):
             self.level += 1
             self.reset_score = False
             self.setup()
+class GameOverView(arcade.View):
+    """Class to manage the game overview"""
 
+    def on_show_view(self):
+        """Called when switching to this view"""
+        arcade.set_background_color(arcade.color.BLACK)
+
+    def on_draw(self):
+        """Draw the game overview"""
+        self.clear()
+        arcade.draw_text(
+            "YOU DIED",
+            SCREEN_WIDTH / 2,
+            SCREEN_HEIGHT / 2,
+            arcade.color.RED,
+            70,
+            anchor_x="center",
+            font_name="Soul_Font"
+        )
+
+    def on_mouse_press(self, _x, _y, _button, _modifiers):
+        """Use a mouse press to advance to the 'game' view."""
+        game_view = GameView()
+        self.window.show_view(game_view)
 def main():
     """Main function"""
-    window = MyGame()
-    window.setup()
+    window = arcade.Window(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
+    menu_view = MainMenu()
+    window.show_view(menu_view)
     arcade.run()
 
 
